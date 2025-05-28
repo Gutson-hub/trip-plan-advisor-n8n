@@ -1,0 +1,149 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d778aca0-decc-4c54-995f-9e5052dae823",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8f417ac3-26d2-4b10-bedd-6f1a1ee0b6ad",
+      "name": "Webhook",
+      "webhookId": "d778aca0-decc-4c54-995f-9e5052dae823"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json[\"body\"][\"Body\"].replace(/\\n/g, ' ').toLowerCase();\n\n// Match name, age, location (mandatory) and optionally budget and interest\nconst match = input.match(\n  /name\\s*:\\s*(\\w+)\\s*age\\s*:\\s*(\\d+)\\s*location\\s*:\\s*(\\w+)(?:\\s*budget\\s*:\\s*(\\d+))?(?:\\s*interest\\s*:\\s*([\\w\\s,]+))?/i\n);\n\nif (match) {\n  const name = match[1];\n  const age = match[2];\n  const location = match[3];\n  const budget = match[4] || null;\n  const interest = match[5] ? match[5].trim() : null;\n\n  return [{\n    name,\n    age,\n    location,\n    budget,\n    interest,\n    from: $json[\"body\"][\"From\"],\n    status: (budget && interest) ? \"complete\" : \"incomplete\"\n  }];\n} else {\n  return [{\n    error: \"❌ Invalid format. Please send at least: Name, Age, Location.\\n\\nExample:\\nName: Ravi\\nAge: 28\\nLocation: Goa\\nBudget: 20000\\nInterest: Beaches\"\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "37367add-16d0-432b-9454-ea9877ba3ab2",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Suggest 3 short travel destinations for a {{ $json[\"age\"] }}-year-old named {{ $json[\"name\"] }} from {{ $json[\"location\"] }}. Budget is ₹{{ $json[\"budget\"] }}, interest includes {{ $json[\"interest\"] }}. Keep it friendly, local if possible, and under 1000 words.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        580,
+        0
+      ],
+      "id": "ff8b1aa6-4f54-4307-98c0-f3530e57206c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        540,
+        280
+      ],
+      "id": "d451dd45-f505-498f-a48c-36406eeaefae",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "UVrueB3UPeYBhGe8",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "{{ \"whatsapp:\" + $json[\"from\"] }}",
+        "toWhatsapp": true,
+        "message": "=`🌍 Trip Plan Advisor 🧳\n\nHi ${$json[\"name\"]}! Based on your inputs:\n\n👤 Age: ${$json[\"age\"]}\n📍 Location: ${$json[\"location\"]}\n💰 Budget: ${$json[\"budget\"]}\n🎯 Interests: ${$json[\"interest\"]}\n\n✨ Here are your travel suggestions:\n\n${$json[\"suggestions\"] || \"No suggestions found.\"}\n\nHappy travels! 🌟`",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        0
+      ],
+      "id": "3ce821dd-3c03-4f4c-a8e7-9061241e4f43",
+      "name": "Twilio",
+      "credentials": {
+        "twilioApi": {
+          "id": "C0XlaZT2yx4aGsZq",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d23bcec5-f826-498e-9330-0152a403c5be",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99575fe212c48a8b989eff56809e0af241207687be25ed3f1bab3371a563c057"
+  },
+  "id": "Ank65JxsuC1fquBl",
+  "tags": []
+}
